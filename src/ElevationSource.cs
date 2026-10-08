@@ -21,6 +21,9 @@ namespace Terrarium
         private const float MissingTileElevation = -50f;
         private const int MaxRetryDelaySeconds = 30;
         private const string MissingMarkerSuffix = ".missing";
+        // Prefetches retry forever like any tile load; when offline this caps how many thread-pool threads they can hold.
+        private const int MaxConcurrentPrefetches = 8;
+        private static readonly SemaphoreSlim PrefetchSlots = new SemaphoreSlim(MaxConcurrentPrefetches);
         // Above this zoom some seas (Mediterranean, Black Sea, Marmara, US east coast) are encoded as ~0 m with no bathymetry; this zoom still has it.
         private const int BathymetryZoom = 10;
         // Water-masked sea is not exactly 0 m: it carries ±0.3 m noise, which made straight 1-block land/water stripes.
@@ -106,6 +109,8 @@ namespace Terrarium
                 {
                     if (dx == 0 && dy == 0) continue;
                     int x = (tileX + dx + tilesPerAxis) % tilesPerAxis;
+                    long key = ((long)x << 32) | (uint)y;
+                    if (_tiles.ContainsKey(key) || !PrefetchSlots.Wait(0)) continue;
                     Task.Run(() =>
                     {
                         try
@@ -119,6 +124,10 @@ namespace Terrarium
                         catch (Exception e)
                         {
                             _logWarning($"Terrarium: prefetching tile {Zoom}/{x}/{y} failed: {e.Message}");
+                        }
+                        finally
+                        {
+                            PrefetchSlots.Release();
                         }
                     });
                 }
