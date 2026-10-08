@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Net.Http;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -63,6 +64,9 @@ namespace Terrarium
         private const int TeleportHeadroom = 2;
 
         private static readonly HttpClient Http = CreateHttpClient();
+        private static readonly TimeSpan GeocodeInterval = TimeSpan.FromSeconds(1);
+        private static readonly object GeocodeLock = new object();
+        private static DateTime _lastGeocodeUtc = DateTime.MinValue;
 
         private ICoreServerAPI _sapi;
         private TerrariumSettings _settings;
@@ -231,7 +235,21 @@ namespace Terrarium
             lat = lon = 0;
             name = null;
             string url = string.Format(GeocodeUrlFormat, Uri.EscapeDataString(query));
-            string json = Http.GetStringAsync(url).GetAwaiter().GetResult();
+            string json;
+            // Nominatim's usage policy allows at most one request per second; serialize all players' lookups.
+            lock (GeocodeLock)
+            {
+                TimeSpan wait = _lastGeocodeUtc + GeocodeInterval - DateTime.UtcNow;
+                if (wait > TimeSpan.Zero) Thread.Sleep(wait);
+                try
+                {
+                    json = Http.GetStringAsync(url).GetAwaiter().GetResult();
+                }
+                finally
+                {
+                    _lastGeocodeUtc = DateTime.UtcNow;
+                }
+            }
             using JsonDocument doc = JsonDocument.Parse(json);
             if (doc.RootElement.ValueKind != JsonValueKind.Array || doc.RootElement.GetArrayLength() == 0) return false;
 
@@ -246,7 +264,7 @@ namespace Terrarium
         {
             var client = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
             // Nominatim's usage policy requires an identifying User-Agent.
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("Terrarium-VintageStory/1.0");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Terrarium-VintageStory/1.0 (+https://github.com/JustEmoBut/terrarium-vintagestory)");
             return client;
         }
     }
