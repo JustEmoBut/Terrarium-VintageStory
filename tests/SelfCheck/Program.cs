@@ -45,6 +45,9 @@ Check(TerrariumModSystem.TryParseCoordinates("-33.86, 151.2", out lat, out lon, 
 Check(!TerrariumModSystem.TryParseCoordinates("Mount Everest", out _, out _, out err) && err == null, "place name is not coordinates");
 Check(!TerrariumModSystem.TryParseCoordinates("100 0", out _, out _, out err) && err != null, "out of range coordinates are rejected");
 
+var farProjection = new EarthProjection(80, 0, 40, 0, 0);
+Check(farProjection.Latitude(-1e7) == 90 && farProjection.Latitude(1e8) == -90, "latitude is clamped at the poles");
+
 // Real data from AWS Terrain Tiles (needs internet).
 string cache = Path.Combine(Path.GetTempPath(), "terrarium-selfcheck-cache");
 var source = new ElevationSource(12, cache, Console.WriteLine, () => false);

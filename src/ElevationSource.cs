@@ -4,6 +4,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
+using System.Threading.Tasks;
 using SkiaSharp;
 
 namespace Terrarium
@@ -19,6 +20,7 @@ namespace Terrarium
         private const int MaxCachedTiles = 256;
         private const float MissingTileElevation = -50f;
         private const int MaxRetryDelaySeconds = 30;
+        private const string MissingMarkerSuffix = ".missing";
         // Above this zoom some seas (Mediterranean, Black Sea, Marmara, US east coast) are encoded as ~0 m with no bathymetry; this zoom still has it.
         private const int BathymetryZoom = 10;
         // Water-masked sea is not exactly 0 m: it carries ±0.3 m noise, which made straight 1-block land/water stripes.
@@ -79,18 +81,55 @@ namespace Terrarium
             return tile[(y & mask) * EarthMath.TileSize + (x & mask)];
         }
 
-        private float[] GetTile(int tileX, int tileY)
+        private float[] GetTile(int tileX, int tileY, bool prefetchNeighbors = true)
         {
             long key = ((long)tileX << 32) | (uint)tileY;
             if (_tiles.TryGetValue(key, out Lazy<float[]> cached)) return cached.Value;
             // Count takes every internal lock, so only check it on a miss.
             if (_tiles.Count > MaxCachedTiles) _tiles.Clear();
+            if (prefetchNeighbors) PrefetchNeighbors(tileX, tileY);
             return _tiles.GetOrAdd(key, _ => new Lazy<float[]>(() => LoadTile(tileX, tileY))).Value;
+        }
+
+        /// <summary>
+        /// Worldgen blocks ~1 s per downloaded tile; loading the 8 neighbors in parallel in the background
+        /// means the player usually walks into tiles that are already there.
+        /// </summary>
+        private void PrefetchNeighbors(int tileX, int tileY)
+        {
+            int tilesPerAxis = 1 << Zoom;
+            for (int dy = -1; dy <= 1; dy++)
+            {
+                int y = tileY + dy;
+                if (y < 0 || y >= tilesPerAxis) continue;
+                for (int dx = -1; dx <= 1; dx++)
+                {
+                    if (dx == 0 && dy == 0) continue;
+                    int x = (tileX + dx + tilesPerAxis) % tilesPerAxis;
+                    Task.Run(() =>
+                    {
+                        try
+                        {
+                            GetTile(x, y, prefetchNeighbors: false);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            // Server is shutting down.
+                        }
+                        catch (Exception e)
+                        {
+                            _logWarning($"Terrarium: prefetching tile {Zoom}/{x}/{y} failed: {e.Message}");
+                        }
+                    });
+                }
+            }
         }
 
         private float[] LoadTile(int tileX, int tileY)
         {
             string path = Path.Combine(_cacheDir, Zoom.ToString(), tileX.ToString(), tileY + ".png");
+            string missingMarker = path + MissingMarkerSuffix;
+            if (File.Exists(missingMarker)) return MissingTile();
             if (File.Exists(path))
             {
                 try
@@ -115,9 +154,9 @@ namespace Terrarium
                     if (response.StatusCode == HttpStatusCode.NotFound)
                     {
                         _logWarning($"Terrarium: tile {url} does not exist, using flat sea floor");
-                        float[] flat = new float[EarthMath.TileSize * EarthMath.TileSize];
-                        Array.Fill(flat, MissingTileElevation);
-                        return flat;
+                        // Remember the 404 so the tile is not requested again after a memory cache flush or restart.
+                        WriteAtomically(missingMarker, Array.Empty<byte>());
+                        return MissingTile();
                     }
                     response.EnsureSuccessStatusCode();
                     byte[] bytes = response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
@@ -151,6 +190,13 @@ namespace Terrarium
                 tile[i] = coarse < 0 ? (float)coarse : ShallowSeaElevation;
             }
             return tile;
+        }
+
+        private static float[] MissingTile()
+        {
+            float[] flat = new float[EarthMath.TileSize * EarthMath.TileSize];
+            Array.Fill(flat, MissingTileElevation);
+            return flat;
         }
 
         public static float[] Decode(byte[] png)

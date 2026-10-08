@@ -84,7 +84,8 @@ namespace Terrarium
             CenterZ = centerZ;
         }
 
-        public double Latitude(double blockZ) => OriginLatitude - (blockZ - CenterZ) * MetersPerBlock / EarthMath.MetersPerDegree;
+        // Clamped: beyond a pole the world continues as polar terrain instead of latitudes past ±90.
+        public double Latitude(double blockZ) => Math.Clamp(OriginLatitude - (blockZ - CenterZ) * MetersPerBlock / EarthMath.MetersPerDegree, -90.0, 90.0);
 
         public double Longitude(double blockX) => EarthMath.WrapLongitude(OriginLongitude + (blockX - CenterX) * MetersPerBlock / EarthMath.MetersPerDegree);
 
