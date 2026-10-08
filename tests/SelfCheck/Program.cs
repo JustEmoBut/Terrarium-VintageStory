@@ -60,6 +60,8 @@ double marmara = source.Sample(40.80, 28.50);
 Check(marmara < -100, $"Sea of Marmara depth {marmara:0} m (zoom 12 has 0 m there, bathymetry comes from zoom 10)");
 double marmaraShore = source.Sample(40.99488, 28.96616);
 Check(marmaraShore < 0, $"Marmara off Kumkapı is sea ({marmaraShore:0.0} m)");
+double kumkapiNoise = source.Sample(40.99961, 28.97465);
+Check(kumkapiNoise <= -0.5, $"Masked-sea noise near Kumkapı becomes sea ({kumkapiNoise:0.0} m)");
 double cached = new ElevationSource(12, cache, Console.WriteLine, () => false).Sample(27.98806, 86.92521);
 Check(cached == everest, "disk cache returns identical data");
 

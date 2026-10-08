@@ -19,8 +19,10 @@ namespace Terrarium
         private const int MaxCachedTiles = 256;
         private const float MissingTileElevation = -50f;
         private const int MaxRetryDelaySeconds = 30;
-        // Above this zoom some seas (Mediterranean, Black Sea, Marmara, US east coast) are encoded as exactly 0 m with no bathymetry; this zoom still has it.
+        // Above this zoom some seas (Mediterranean, Black Sea, Marmara, US east coast) are encoded as ~0 m with no bathymetry; this zoom still has it.
         private const int BathymetryZoom = 10;
+        // Water-masked sea is not exactly 0 m: it carries ±0.3 m noise, which made straight 1-block land/water stripes.
+        private const float MaskedSeaTolerance = 0.5f;
         private const float ShallowSeaElevation = -1f;
 
         private static readonly HttpClient Http = CreateHttpClient();
@@ -133,7 +135,7 @@ namespace Terrarium
         }
 
         /// <summary>
-        /// Exactly-0 m pixels at high zoom are water-masked sea: they get the coarser bathymetry, or a shallow
+        /// Near-0 m pixels at high zoom are water-masked sea: they get the coarser bathymetry, or a shallow
         /// depth near coasts where the coarse data is blended with land.
         /// </summary>
         private float[] FillMissingBathymetry(float[] tile, int tileX, int tileY)
@@ -142,7 +144,7 @@ namespace Terrarium
             double scale = 1 << (Zoom - BathymetryZoom);
             for (int i = 0; i < tile.Length; i++)
             {
-                if (tile[i] != 0f) continue;
+                if (Math.Abs(tile[i]) >= MaskedSeaTolerance) continue;
                 double gx = (tileX << EarthMath.TileSizeShift) + (i & (EarthMath.TileSize - 1)) + 0.5;
                 double gy = (tileY << EarthMath.TileSizeShift) + (i >> EarthMath.TileSizeShift) + 0.5;
                 double coarse = _bathymetry.SamplePixel(gx / scale, gy / scale);
