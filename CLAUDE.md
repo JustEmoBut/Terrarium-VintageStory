@@ -28,7 +28,8 @@ dotnet run --project tests/SelfCheck         # assert-based self-check, download
 | `ElevationSource.cs` | AWS Terrain Tiles (`s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png`), bilinear sampling, disk cache (`<data>/TerrariumCache`) + bounded memory cache. |
 | `EarthTerrainGenerator.cs` | Replacement for vanilla `GenTerra` in the Terrain pass. |
 | `EarthClimateLayer.cs` | Wraps `GenMaps.climateGen`: temperature/rain by latitude, keeps vanilla geologic activity byte. |
-| `TerrariumModSystem.cs` | Settings, handler swap, client latitude hook, `/geotp`, `/geopos`. |
+| `TerrariumModSystem.cs` | Settings, handler swap, client latitude hook, `/geotp`, `/geopos`, `/realweather`. |
+| `RealWeather.cs` | Optional real-world weather from Open-Meteo: per-region fetch, WMO → vanilla pattern mapping, climate hook (server + client), network channel `terrarium-realweather`. |
 
 Durable decisions — do not change without a reason:
 - **Stay on worldType `standard`** and swap only GenTerra's delegate **in place** in `GetRegisteredWorldGenHandlers("standard").OnChunkColumnGen[Terrain]`. A custom worldType would lose every vanilla pass (strata, caves, soil, ores, vegetation, structures). `ExecuteOrder() = 1.0` so all vanilla systems (GenTerra 0, GenMaps 0.1) have registered first.
@@ -36,14 +37,21 @@ Durable decisions — do not change without a reason:
 - **Never generate fake terrain on download failure.** Generated chunks are permanent and a throwing Terrain-pass handler leaves the chunk empty, so `ElevationSource` retries with backoff until data arrives (aborts only on server shutdown).
 - **Near-0 m (|elev| < 0.5 m, `MaskedSeaTolerance`) at zoom ≥ 11 is water-masked sea**, not land — the masked area carries ±0.3 m noise, so an exact-0 test leaves 1-block stripes: AWS tiles drop bathymetry there for some seas (Mediterranean, Black Sea, Marmara, US east coast). `ElevationSource` fills those pixels from zoom 10 (`BathymetryZoom`), or −1 m where zoom 10 is blended with land near coasts. Any elevation < 0 gets at least one water block (`EarthTerrainGenerator.TerrainHeight`).
 - **Terrarium only runs on worldType `standard`.** The Creative playstyle uses `superflat`, so a Creative world with `terrariumEnabled` silently generates flat land. In-game tests: Standard playstyle, then `/gamemode spectator` to fly.
-- **Old saves stay vanilla:** `terrariumEnabled` missing from a save's world config ⇒ disabled. Verified with a scratch server. All Terrarium settings are `onlyDuringWorldCreate`.
+- **Old saves stay vanilla:** `terrariumEnabled` missing from a save's world config ⇒ disabled. Verified with a scratch server. All terrain settings are `onlyDuringWorldCreate`; the `terrariumRealWeather*` settings are not (also changed at runtime via `/realweather`, stored in the save's world config).
 - `worldconfig.json` **must contain `"playStyles": []`** — the singleplayer screen iterates it without a null check and crashes otherwise.
 - World-config labels live in `assets/game/lang/worldconfig-<lang>.json` (keys `worldattribute-<code>`, `worldconfig-<code>-<name>`, `worldconfig-category-terrarium`); normal mod lang files are not loaded in the main menu.
 - Vertical scale `auto` (default) = log curve (`EarthMath.AutoHeightBlocks`, knee 200 m) that puts the highest peak at `mapSizeY − 12`. Linear m/block options clip high terrain.
 
 ## Status (2026-10-08)
 
-Working, user-tested in singleplayer: Earth terrain, `/geotp` (coordinates or place names via Nominatim), `/geopos`, latitude climate, Turkish + English world-config labels.
+Working, user-tested in singleplayer: Earth terrain, `/geotp` (coordinates or place names via Nominatim), `/geopos`, latitude climate, Turkish + English world-config labels, real-world weather.
+
+Real weather (`RealWeather.cs`) — durable decisions:
+- Clouds/fog, wind and thunder/hail go through vanilla `WeatherSimulationRegion.SetWeatherPattern/SetWindPattern/SetWeatherEvent`; vanilla syncs these, so clients **without** the mod see them too. They are re-applied every 10 s because vanilla swaps expired patterns.
+- Rain amount and temperature go through `OnGetClimate` (rendering reads `ClimateCondition.Rainfall`), which runs separately on client and server, so they only show on clients **with** the mod. Server sends data only to clients that sent `RealWeatherHello`.
+- Only "now" climate queries are changed; `WorldGenValues` and past `ForSuppliedDate*` queries (crop catch-up) stay vanilla.
+- Temperature = vanilla day/night + season curve plus today's real anomaly vs a 10-year normal (Open-Meteo archive), clamped ±15 °C. Game clock is not real time, so absolute real temperature is not used.
+- On download failure a region keeps vanilla weather (weather is transient; the "never fake terrain" rule does not apply). Open-Meteo free API: non-commercial, <10 000 calls/day, CC BY 4.0 attribution in README.
 
 Open items / known limitations:
 - At 256 world height Grand Canyon is only ~31 blocks deep; recommend 384–512 world height. Possible feature: a "mountain compression" setting (trade clipping of >4500 m for steeper mid-altitudes).
