@@ -5,6 +5,11 @@
     { "category": "terrarium", "code": "terrariumOriginLatitude", "dataType": "doubleinput", "default": "41.0082", "min": -90, "max": 90, "onlyDuringWorldCreate": true },
     { "category": "terrarium", "code": "terrariumOriginLongitude", "dataType": "doubleinput", "default": "28.9784", "min": -180, "max": 180, "onlyDuringWorldCreate": true },
     { "category": "terrarium", "code": "terrariumHorizontalScale", "dataType": "dropdown", "values": ["10", "20", "40", "80", "160"], "names": ["10 m/block", "20 m/block", "40 m/block", "80 m/block", "160 m/block"], "default": "40", "onlyDuringWorldCreate": true },
-    { "category": "terrarium", "code": "terrariumVerticalScale", "dataType": "dropdown", "values": ["auto", "10", "20", "30", "40", "60", "80"], "names": ["Auto", "10 m/block", "20 m/block", "30 m/block", "40 m/block", "60 m/block", "80 m/block"], "default": "auto", "onlyDuringWorldCreate": true }
+    { "category": "terrarium", "code": "terrariumVerticalScale", "dataType": "dropdown", "values": ["auto", "10", "20", "30", "40", "60", "80"], "names": ["Auto", "10 m/block", "20 m/block", "30 m/block", "40 m/block", "60 m/block", "80 m/block"], "default": "auto", "onlyDuringWorldCreate": true },
+    { "category": "terrarium", "code": "terrariumRealWeather", "dataType": "bool", "default": "false", "onlyDuringWorldCreate": false },
+    { "category": "terrarium", "code": "terrariumRealWeatherPrecipitation", "dataType": "bool", "default": "true", "onlyDuringWorldCreate": false },
+    { "category": "terrarium", "code": "terrariumRealWeatherClouds", "dataType": "bool", "default": "true", "onlyDuringWorldCreate": false },
+    { "category": "terrarium", "code": "terrariumRealWeatherWind", "dataType": "bool", "default": "true", "onlyDuringWorldCreate": false },
+    { "category": "terrarium", "code": "terrariumRealWeatherTemperature", "dataType": "bool", "default": "true", "onlyDuringWorldCreate": false }
   ]
 }

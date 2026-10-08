@@ -48,6 +48,20 @@ Check(!TerrariumModSystem.TryParseCoordinates("100 0", out _, out _, out err) &&
 var farProjection = new EarthProjection(80, 0, 40, 0, 0);
 Check(farProjection.Latitude(-1e7) == 90 && farProjection.Latitude(1e8) == -90, "latitude is clamped at the poles");
 
+Check(RealWeatherMath.Rainfall(0) == 0 && RealWeatherMath.Rainfall(0.01) == 0.1f && RealWeatherMath.Rainfall(5) == 1f, "real weather: rain mm to game rainfall");
+Check(RealWeatherMath.RainCloudOverlay(0, 100) < 0.5f && RealWeatherMath.RainCloudOverlay(0.3f, 100) > 0.5f, "real weather: only rain pushes cloud overlay over 0.5");
+Check(RealWeatherMath.CloudPattern(0, 0) == "clearsky" && RealWeatherMath.CloudPattern(3, 95) == "overcast" && RealWeatherMath.CloudPattern(45, 100) == "haze" && RealWeatherMath.CloudPattern(95, 90) == "cumulonimbus", "real weather: WMO code to cloud pattern");
+Check(RealWeatherMath.WindPattern(0) == "still" && RealWeatherMath.WindPattern(20) == "mediumbreeze" && RealWeatherMath.WindPattern(80) == "storm", "real weather: wind speed to pattern");
+Check(RealWeatherMath.WeatherEvent(99) == "largehail" && RealWeatherMath.WeatherEvent(61) == "noevent", "real weather: thunderstorm events");
+Check(RealWeatherMath.TemperatureAnomaly(30, 10) == 15f, "real weather: temperature anomaly is clamped");
+var normalDays = new[] { new DateTime(2020, 12, 30), new DateTime(2021, 1, 2), new DateTime(2021, 6, 1) };
+Check(Math.Abs(RealWeatherMath.NormalForDayOfYear(normalDays, new double?[] { 2, 4, 25 }, 1, 7) - 3) < 1e-9, "real weather: normal wraps over new year and skips other seasons");
+Check(OpenMeteo.Locations("{\"current\":{}}").Count == 1 && OpenMeteo.Locations("[{},{}]").Count == 2, "Open-Meteo: object and array responses");
+bool openMeteoErrorThrown = false;
+try { OpenMeteo.Locations("{\"error\":true,\"reason\":\"Latitude must be in range\"}"); } catch (InvalidOperationException) { openMeteoErrorThrown = true; }
+Check(openMeteoErrorThrown, "Open-Meteo: error response throws");
+Check(!RealWeatherSettings.Read(null).Enabled && RealWeatherSettings.Read(null).Temperature, "real weather settings: missing keys = off, parts on");
+
 // Real data from AWS Terrain Tiles (needs internet).
 string cache = Path.Combine(Path.GetTempPath(), "terrarium-selfcheck-cache");
 var source = new ElevationSource(12, cache, Console.WriteLine, () => false);
@@ -65,6 +79,11 @@ double marmaraShore = source.Sample(40.99488, 28.96616);
 Check(marmaraShore < 0, $"Marmara off Kumkapı is sea ({marmaraShore:0.0} m)");
 double kumkapiNoise = source.Sample(40.99961, 28.97465);
 Check(kumkapiNoise <= -0.5, $"Masked-sea noise near Kumkapı becomes sea ({kumkapiNoise:0.0} m)");
+var http = new System.Net.Http.HttpClient();
+var meteo = OpenMeteo.FetchCurrent(http, new[] { (41.0, 28.9), (52.5, 13.4) });
+Check(meteo.Count == 2 && meteo[0].TodayMean > -60 && meteo[0].TodayMean < 60 && meteo[0].CloudCover >= 0, $"Open-Meteo current weather for 2 places (Istanbul {meteo[0].TodayMean:0.0} °C, code {meteo[0].WeatherCode})");
+double istanbulNormal = OpenMeteo.FetchNormals(http, new[] { (41.0, 28.9) }, DateTime.UtcNow)[0];
+Check(istanbulNormal > -5 && istanbulNormal < 35, $"Open-Meteo temperature normal for Istanbul today {istanbulNormal:0.0} °C");
 double cached = new ElevationSource(12, cache, Console.WriteLine, () => false).Sample(27.98806, 86.92521);
 Check(cached == everest, "disk cache returns identical data");
 

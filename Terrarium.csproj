@@ -27,6 +27,10 @@
       <HintPath>$(VintageStoryPath)\Mods\VSEssentials.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="protobuf-net">
+      <HintPath>$(VintageStoryPath)\Lib\protobuf-net.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="SkiaSharp">
       <HintPath>$(VintageStoryPath)\Lib\SkiaSharp.dll</HintPath>
       <Private>false</Private>

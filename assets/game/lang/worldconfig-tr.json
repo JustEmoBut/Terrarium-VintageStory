@@ -21,5 +21,15 @@
   "worldconfig-terrariumVerticalScale-30 m/block": "30 m/blok",
   "worldconfig-terrariumVerticalScale-40 m/block": "40 m/blok",
   "worldconfig-terrariumVerticalScale-60 m/block": "60 m/blok",
-  "worldconfig-terrariumVerticalScale-80 m/block": "80 m/blok"
+  "worldconfig-terrariumVerticalScale-80 m/block": "80 m/blok",
+  "worldattribute-terrariumRealWeather": "Gerçek hava durumu",
+  "worldattribute-terrariumRealWeather-desc": "Her bölgenin güncel gerçek havasını kullanır (Open-Meteo.com). Sonradan /realweather ile değiştirilebilir. Yağmur ve sıcaklık için istemcide de mod gerekir.",
+  "worldattribute-terrariumRealWeatherPrecipitation": "Gerçek hava: yağış",
+  "worldattribute-terrariumRealWeatherPrecipitation-desc": "Yağmur, kar, dolu ve fırtınalar gerçek havayı izler.",
+  "worldattribute-terrariumRealWeatherClouds": "Gerçek hava: bulut ve sis",
+  "worldattribute-terrariumRealWeatherClouds-desc": "Bulutluluk ve sis gerçek havayı izler.",
+  "worldattribute-terrariumRealWeatherWind": "Gerçek hava: rüzgâr",
+  "worldattribute-terrariumRealWeatherWind-desc": "Rüzgâr şiddeti gerçek rüzgâr hızını izler.",
+  "worldattribute-terrariumRealWeatherTemperature": "Gerçek hava: sıcaklık",
+  "worldattribute-terrariumRealWeatherTemperature-desc": "Sıcaklığı, bugün gerçekte normalden ne kadar sıcak veya soğuksa o kadar kaydırır. Gerçek bir soğuk dalgası ekinlere zarar verebilir."
 }

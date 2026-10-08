@@ -21,5 +21,15 @@
   "worldconfig-terrariumVerticalScale-30 m/block": "30 m/block",
   "worldconfig-terrariumVerticalScale-40 m/block": "40 m/block",
   "worldconfig-terrariumVerticalScale-60 m/block": "60 m/block",
-  "worldconfig-terrariumVerticalScale-80 m/block": "80 m/block"
+  "worldconfig-terrariumVerticalScale-80 m/block": "80 m/block",
+  "worldattribute-terrariumRealWeather": "Real-world weather",
+  "worldattribute-terrariumRealWeather-desc": "Use the current real weather of each area (from Open-Meteo.com). Can be changed later with /realweather. Rain and temperature also need the mod on the client.",
+  "worldattribute-terrariumRealWeatherPrecipitation": "Real weather: precipitation",
+  "worldattribute-terrariumRealWeatherPrecipitation-desc": "Rain, snow, hail and thunderstorms follow the real weather.",
+  "worldattribute-terrariumRealWeatherClouds": "Real weather: clouds and fog",
+  "worldattribute-terrariumRealWeatherClouds-desc": "Cloud cover and fog follow the real weather.",
+  "worldattribute-terrariumRealWeatherWind": "Real weather: wind",
+  "worldattribute-terrariumRealWeatherWind-desc": "Wind strength follows the real wind speed.",
+  "worldattribute-terrariumRealWeatherTemperature": "Real weather: temperature",
+  "worldattribute-terrariumRealWeatherTemperature-desc": "Shifts the temperature by how much warmer or colder than normal it really is today. A real cold spell can damage crops."
 }

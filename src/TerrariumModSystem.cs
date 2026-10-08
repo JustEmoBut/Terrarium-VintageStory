@@ -72,11 +72,13 @@ namespace Terrarium
         private TerrariumSettings _settings;
         private EarthProjection _projection;
         private EarthTerrainGenerator _generator;
+        private RealWeatherServer _realWeather;
 
         public override double ExecuteOrder() => AfterVanillaWorldGen;
 
         public override void StartClientSide(ICoreClientAPI api)
         {
+            RealWeatherClient.Start(api);
             // Sun path, day length and seasons use the real latitude.
             api.Event.LevelFinalize += () =>
             {
@@ -122,6 +124,7 @@ namespace Terrarium
 
             EarthProjection projection = _projection;
             _sapi.World.Calendar.OnGetLatitude = z => projection.Latitude(z) / 90.0;
+            _realWeather = new RealWeatherServer(_sapi, _projection, Http);
 
             _sapi.Logger.Notification("Terrarium: generating Earth, world center = {0:0.####}, {1:0.####}, {2} m/block horizontal, vertical scale {3}, elevation zoom {4}",
                 settings.OriginLatitude, settings.OriginLongitude, settings.HorizontalScale,
@@ -137,6 +140,12 @@ namespace Terrarium
                 .WithArgs(api.ChatCommands.Parsers.All("location"))
                 .HandleWith(OnGeoTp);
 
+            api.ChatCommands.Create("realweather")
+                .WithDescription("Real-world weather: /realweather [on|off] or /realweather <precipitation|clouds|wind|temperature> <on|off>")
+                .RequiresPrivilege(Privilege.controlserver)
+                .WithArgs(api.ChatCommands.Parsers.OptionalWord("what"), api.ChatCommands.Parsers.OptionalWord("state"))
+                .HandleWith(OnRealWeather);
+
             api.ChatCommands.Create("geopos")
                 .WithDescription("Show your real-world latitude, longitude and elevation")
                 .RequiresPrivilege(Privilege.chat)
@@ -148,9 +157,45 @@ namespace Terrarium
         {
             if (_projection == null) return TextCommandResult.Error("This is not a Terrarium (Earth) world.");
             var pos = args.Caller.Entity.Pos;
-            return TextCommandResult.Success(string.Format(CultureInfo.InvariantCulture,
+            string text = string.Format(CultureInfo.InvariantCulture,
                 "Latitude {0:0.#####}, longitude {1:0.#####}, real elevation {2:0} m",
-                _projection.Latitude(pos.Z), _projection.Longitude(pos.X), _generator.ElevationAt(pos.X, pos.Z)));
+                _projection.Latitude(pos.Z), _projection.Longitude(pos.X), _generator.ElevationAt(pos.X, pos.Z));
+            RegionWeather weather = _realWeather.Settings.Enabled ? _realWeather.WeatherAt(pos.X, pos.Z) : null;
+            if (weather != null)
+            {
+                text += string.Format(CultureInfo.InvariantCulture, "\nReal weather: {0}, wind {1}, {2}, rain {3:0.00}, temperature {4:+0.0;-0.0} °C vs normal",
+                    weather.CloudPattern, weather.WindPattern, weather.WeatherEvent, weather.Rainfall, weather.TemperatureAnomaly);
+            }
+            return TextCommandResult.Success(text);
+        }
+
+        private TextCommandResult OnRealWeather(TextCommandCallingArgs args)
+        {
+            if (_realWeather == null) return TextCommandResult.Error("This is not a Terrarium (Earth) world.");
+            string what = ((string)args[0])?.ToLowerInvariant();
+            string state = ((string)args[1])?.ToLowerInvariant();
+
+            if (what == "on" || what == "off")
+            {
+                _realWeather.ChangeSettings(s => s.Enabled = what == "on");
+            }
+            else if (what != null)
+            {
+                if (state != "on" && state != "off") return TextCommandResult.Error("Usage: /realweather <precipitation|clouds|wind|temperature> <on|off>");
+                bool on = state == "on";
+                switch (what)
+                {
+                    case "precipitation": _realWeather.ChangeSettings(s => s.Precipitation = on); break;
+                    case "clouds": _realWeather.ChangeSettings(s => s.Clouds = on); break;
+                    case "wind": _realWeather.ChangeSettings(s => s.Wind = on); break;
+                    case "temperature": _realWeather.ChangeSettings(s => s.Temperature = on); break;
+                    default: return TextCommandResult.Error($"Unknown part '{what}'. Use precipitation, clouds, wind or temperature.");
+                }
+            }
+
+            RealWeatherSettings set = _realWeather.Settings;
+            string OnOff(bool b) => b ? "on" : "off";
+            return TextCommandResult.Success($"Real weather {OnOff(set.Enabled)} (precipitation {OnOff(set.Precipitation)}, clouds {OnOff(set.Clouds)}, wind {OnOff(set.Wind)}, temperature {OnOff(set.Temperature)}). Weather data: Open-Meteo.com (CC BY 4.0)");
         }
 
         private TextCommandResult OnGeoTp(TextCommandCallingArgs args)

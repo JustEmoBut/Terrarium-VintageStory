@@ -8,6 +8,7 @@ Inspired by [Gegy's Terrarium](https://modrinth.com/mod/terrarium) for Minecraft
 - Climate follows latitude: temperature, rainfall, seasons and day length match where you are
 - All vanilla worldgen still runs on top: rock strata, caves, soil, ores, vegetation, structures
 - `/geotp` to travel to any coordinate or place name, `/geopos` to see where you are
+- Optional real-world weather: current rain, snow, clouds, wind, thunderstorms and temperature of each area (`/realweather`)
 
 ## Requirements
 
@@ -44,7 +45,8 @@ All settings apply only when the world is created. Existing worlds without them 
 |---|---|
 | `/geotp <latitude> <longitude>` | Teleport to a real-world coordinate, e.g. `/geotp 27.988 86.925` |
 | `/geotp <place name>` | Teleport to a place by name, e.g. `/geotp Grand Canyon` (uses OpenStreetMap Nominatim) |
-| `/geopos` | Show your real-world latitude, longitude and elevation |
+| `/geopos` | Show your real-world latitude, longitude and elevation (and the real weather there, when enabled) |
+| `/realweather [on\|off]` | Turn real-world weather on or off; `/realweather <precipitation\|clouds\|wind\|temperature> <on\|off>` toggles one part. Needs server control privilege |
 
 ## Known limitations
 
@@ -70,6 +72,7 @@ Restart the game after every rebuild; a running game cannot reload the mod assem
 - **Elevation:** [Terrain Tiles on AWS](https://registry.opendata.aws/terrain-tiles/), originally by Mapzen. Data sources and attribution:
   [Terrain Tiles attribution](https://github.com/tilezen/joerd/blob/master/docs/attribution.md)
   (includes SRTM, GMTED, ETOPO1, NRCan CDEM, USGS NED and others).
+- **Real-world weather (optional):** [Open-Meteo.com](https://open-meteo.com/), weather data under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The free API is for non-commercial use only (fewer than 10 000 calls per day).
 - **Place search:** [OpenStreetMap Nominatim](https://nominatim.openstreetmap.org/), data © OpenStreetMap contributors, [ODbL](https://www.openstreetmap.org/copyright).
   Please respect the [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/) (max 1 request per second).
 - **Inspiration:** [Terrarium](https://github.com/gegy/terrarium) by Gegy. This is a clean-room implementation for Vintage Story; no Terrarium code is used.
