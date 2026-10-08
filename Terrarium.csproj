@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Terrarium</AssemblyName>
+    <RootNamespace>Terrarium</RootNamespace>
+    <Version>1.0.0</Version>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <!-- Override with: dotnet build -p:VintageStoryPath="D:\Games\Vintage Story" -->
+    <VintageStoryPath Condition="'$(VintageStoryPath)' == '' And '$(VINTAGE_STORY)' != ''">$(VINTAGE_STORY)</VintageStoryPath>
+    <VintageStoryPath Condition="'$(VintageStoryPath)' == ''">$(USERPROFILE)\Desktop\Vintage Story</VintageStoryPath>
+    <ModsPath>$(APPDATA)\VintagestoryData\Mods</ModsPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="tests\**" />
+  </ItemGroup>
+
+  <!-- All references ship with the game; Private=false keeps them out of the mod zip. -->
+  <ItemGroup>
+    <Reference Include="VintagestoryAPI">
+      <HintPath>$(VintageStoryPath)\VintagestoryAPI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="VSEssentials">
+      <HintPath>$(VintageStoryPath)\Mods\VSEssentials.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="SkiaSharp">
+      <HintPath>$(VintageStoryPath)\Lib\SkiaSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="PackageMod" AfterTargets="Build">
+    <PropertyGroup>
+      <PackageDir>$(IntermediateOutputPath)package\</PackageDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <ModAssets Include="assets\**\*" />
+    </ItemGroup>
+    <RemoveDir Directories="$(PackageDir)" />
+    <Copy SourceFiles="$(TargetPath);modinfo.json;worldconfig.json" DestinationFolder="$(PackageDir)" />
+    <Copy SourceFiles="@(ModAssets)" DestinationFolder="$(PackageDir)assets\%(RecursiveDir)" />
+    <ZipDirectory SourceDirectory="$(PackageDir)" DestinationFile="$(ModsPath)\terrarium_$(Version).zip" Overwrite="true" />
+    <Message Importance="high" Text="Terrarium packaged to $(ModsPath)\terrarium_$(Version).zip" />
+  </Target>
+
+</Project>

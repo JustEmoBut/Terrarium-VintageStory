@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <VintageStoryPath Condition="'$(VintageStoryPath)' == ''">$(USERPROFILE)\Desktop\Vintage Story</VintageStoryPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Terrarium.csproj" />
+    <!-- The mod references these with Private=false; the self-check runs outside the game so it needs local copies. -->
+    <Reference Include="VintagestoryAPI" HintPath="$(VintageStoryPath)\VintagestoryAPI.dll" />
+    <Reference Include="VSEssentials" HintPath="$(VintageStoryPath)\Mods\VSEssentials.dll" />
+    <Reference Include="SkiaSharp" HintPath="$(VintageStoryPath)\Lib\SkiaSharp.dll" />
+    <None Include="$(VintageStoryPath)\Lib\libSkiaSharp.dll" CopyToOutputDirectory="PreserveNewest" Link="libSkiaSharp.dll" />
+  </ItemGroup>
+
+</Project>

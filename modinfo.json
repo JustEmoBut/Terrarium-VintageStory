@@ -1,0 +1,14 @@
+{
+  "type": "code",
+  "modid": "terrarium",
+  "name": "Terrarium",
+  "version": "1.0.0",
+  "description": "Generates a replica of the real Earth from real-world elevation data. Inspired by Gegy's Terrarium for Minecraft.",
+  "authors": [ "Just" ],
+  "side": "Universal",
+  "requiredOnClient": false,
+  "requiredOnServer": true,
+  "dependencies": {
+    "game": "1.22.0"
+  }
+}
